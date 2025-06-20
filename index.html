@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plush Pepe Tap Battle</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@thirdweb-dev/sdk@3.10.5/dist/thirdweb-dev-sdk.browser.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #40C4FF, #ffffff);
+            color: #333;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        #pepe {
+            width: 150px;
+            height: 150px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #pepe:active {
+            transform: scale(1.1);
+        }
+        #score {
+            font-size: 28px;
+            margin: 20px;
+            font-weight: bold;
+        }
+        #energy {
+            font-size: 20px;
+            margin: 10px;
+            color: #4CAF50;
+        }
+        #user-info {
+            font-size: 18px;
+            margin: 10px;
+        }
+        #connect-wallet, #mint-nft {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #mint-nft:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #coin-effect {
+            position: absolute;
+            font-size: 20px;
+            color: gold;
+            pointer-events: none;
+            animation: float 1s ease-out forwards;
+        }
+        @keyframes float {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="user-info">Welcome, Guest!</div>
+    <div id="score">Coins: 0</div>
+    <div id="energy">Energy: 100/100</div>
+    <img id="pepe" src="https://i.imgur.com/8zC4Z8a.png" alt="Plush Pepe">
+    <button id="connect-wallet">Connect TON Wallet</button>
+    <button id="mint-nft" disabled>Mint Plush Pepe NFT</button>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+
+        // Telegram user info
+        const user = tg.initDataUnsafe.user;
+        const userInfo = document.getElementById('user-info');
+        if (user) {
+            userInfo.textContent = `Welcome, ${user.first_name || 'Player'}!`;
+        }
+
+        // thirdweb client
+        const client = thirdweb.createThirdwebClient({
+            clientId: "YOUR_THIRDWEB_CLIENT_ID" // Replace with your thirdweb client ID
+        });
+
+        const scoreDisplay = document.getElementById('score');
+        const energyDisplay = document.getElementById('energy');
+        const pepe = document.getElementById('pepe');
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        const mintNFTBtn = document.getElementById('mint-nft');
+        let coins = 0;
+        let energy = 100;
+        let maxEnergy = 100;
+        let walletConnected = false;
+
+        // Tap to earn coins
+        pepe.addEventListener('click', (e) => {
+            if (energy > 0) {
+                coins++;
+                energy--;
+                scoreDisplay.textContent = `Coins: ${coins}`;
+                energyDisplay.textContent = `Energy: ${energy}/${maxEnergy}`;
+                createCoinEffect(e.clientX, e.clientY);
+                if (coins >= 50 && walletConnected) {
+                    mintNFTBtn.disabled = false;
+                }
+                if (energy === 0) {
+                    pepe.style.opacity = '0.5';
+                    pepe.style.pointerEvents = 'none';
+                }
+            }
+        });
+
+        // Energy regeneration
+        setInterval(() => {
+            if (energy < maxEnergy) {
+                energy++;
+                energyDisplay.textContent = `Energy: ${energy}/${maxEnergy}`;
+                if (energy > 0) {
+                    pepe.style.opacity = '1';
+                    pepe.style.pointerEvents = 'auto';
+                }
+            }
+        }, 1000);
+
+        // Coin effect animation
+        function createCoinEffect(x, y) {
+            const coin = document.createElement('div');
+            coin.textContent = '+1';
+            coin.id = 'coin-effect';
+            coin.style.left = `${x}px`;
+            coin.style.top = `${y}px`;
+            document.body.appendChild(coin);
+            setTimeout(() => coin.remove(), 1000);
+        }
+
+        // Connect TON wallet
+        connectWalletBtn.addEventListener('click', async () => {
+            try {
+                const wallet = await client.connect({
+                    chainId: "ton-mainnet",
+                    walletType: "ton-wallet"
+                });
+                connectWalletBtn.textContent = `Connected: ${wallet.address.slice(0, 6)}...`;
+                connectWalletBtn.disabled = true;
+                walletConnected = true;
+                if (coins >= 50) {
+                    mintNFTBtn.disabled = false;
+                }
+            } catch (error) {
+                alert('Wallet connection failed: ' + error.message);
+            }
+        });
+
+        // Mint NFT (placeholder)
+        mintNFTBtn.addEventListener('click', async () => {
+            if (coins < 50) return;
+            try {
+                // Placeholder: Deploy ERC721 contract on TON via thirdweb
+                coins -= 50;
+                scoreDisplay.textContent = `Coins: ${coins}`;
+                mintNFTBtn.disabled = true;
+                alert('Plush Pepe NFT minted! Check your TON wallet.');
+            } catch (error) {
+                alert('Minting failed: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html> 
